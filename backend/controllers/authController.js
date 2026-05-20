@@ -68,7 +68,7 @@ export const loginUser = async (req, res) => {
 
     // Check if user exists
     const [users] = await pool.query(
-      'SELECT id, name, email, password, role FROM users WHERE email = ?',
+      'SELECT id, name, email, password, role, photo FROM users WHERE email = ?',
       [email]
     )
 
@@ -99,7 +99,8 @@ export const loginUser = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role || 'user'
+        role: user.role || 'user',
+        photo: user.photo || null
       }
     })
   } catch (error) {
@@ -163,9 +164,52 @@ export const loginAdmin = async (req, res) => {
 // Verify token
 export const verifyToken = async (req, res) => {
   try {
+    if (req.user.role === 'admin') {
+      const [admins] = await pool.query(
+        'SELECT id, name, email FROM admins WHERE id = ?',
+        [req.user.id]
+      )
+
+      if (admins.length === 0) {
+        return res.status(404).json({ message: 'Admin not found' })
+      }
+
+      return res.json({
+        message: 'Token is valid',
+        user: {
+          id: admins[0].id,
+          name: admins[0].name,
+          email: admins[0].email,
+          role: 'admin',
+          photo: null
+        }
+      })
+    }
+
+    const [users] = await pool.query(
+      'SELECT id, name, email, photo FROM users WHERE id = ? LIMIT 1',
+      [req.user.id]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    console.log('Verify token user:', {
+      id: users[0].id,
+      email: users[0].email,
+      photo: users[0].photo
+    })
+
     res.json({
       message: 'Token is valid',
-      user: req.user
+      user: {
+        id: users[0].id,
+        name: users[0].name,
+        email: users[0].email,
+        role: 'user',
+        photo: users[0].photo || null
+      }
     })
   } catch (error) {
     res.status(401).json({ message: 'Invalid token' })

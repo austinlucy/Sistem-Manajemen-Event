@@ -1,7 +1,9 @@
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../context/AuthContext'
-import AdminSidebar from '../components/AdminSidebar'
+import { DashboardProvider } from '../context/DashboardContext'
+import { VintageAdminSidebar } from '../components/Vintage'
+import AnimatedMonochromeBackground from '../components/AnimatedMonochromeBackground'
 
 export default function AdminLayout() {
   const { logout } = useContext(AuthContext)
@@ -13,11 +15,19 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <AdminSidebar onLogout={handleLogout} />
-      <main className="flex-1 overflow-auto">
-        <Outlet />
-      </main>
+    <div className="relative flex min-h-screen">
+      {/* Global animated background */}
+      <AnimatedMonochromeBackground />
+      
+      {/* Content overlay */}
+      <div className="relative z-10 flex w-full">
+        <VintageAdminSidebar onLogout={handleLogout} />
+        <DashboardProvider>
+          <main className="flex-1 overflow-auto">
+            <Outlet />
+          </main>
+        </DashboardProvider>
+      </div>
     </div>
   )
 }

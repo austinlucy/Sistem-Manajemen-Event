@@ -1,16 +1,21 @@
 import { useState, useContext } from 'react'
 import { motion } from 'framer-motion'
-import { User, Mail, Camera } from 'lucide-react'
+import { User, Mail, Camera, CheckCircle } from 'lucide-react'
 import { AuthContext } from '../context/AuthContext'
 import { userService } from '../services'
+import { EditorialSection, VintageButton, VintageCard, VintageInput } from '../components/Vintage'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const BASE_URL = API_URL.replace('/api', '')
 
 export default function ProfilePage() {
-  const { user, logout } = useContext(AuthContext)
+  const { user, setUser } = useContext(AuthContext)
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
   })
   const [loading, setLoading] = useState(false)
+  const [photoLoading, setPhotoLoading] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 
@@ -19,7 +24,15 @@ export default function ProfilePage() {
     try {
       setLoading(true)
       setError('')
-      await userService.updateProfile(formData)
+      const response = await userService.updateProfile(formData)
+      const updatedUser = response.data?.user
+      if (updatedUser && setUser) {
+        setUser(prev => ({
+          ...prev,
+          ...updatedUser,
+          photo: updatedUser.photo ?? prev?.photo ?? null
+        }))
+      }
       setSuccess('Profile updated successfully!')
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
@@ -33,113 +46,157 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only image files are allowed (jpg, png, gif, webp)')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB')
+      return
+    }
+
     try {
-      const formData = new FormData()
-      formData.append('photo', file)
-      await userService.uploadPhoto(formData)
+      setPhotoLoading(true)
+      setError('')
+      setSuccess('')
+      const uploadForm = new FormData()
+      uploadForm.append('photo', file)
+
+      const response = await userService.uploadPhoto(uploadForm)
+      const photoPath = response.data?.user?.photo || response.data?.photoPath || ''
+
+      if (photoPath && setUser) {
+        setUser(prev => ({
+          ...prev,
+          ...(response.data?.user || {}),
+          photo: photoPath
+        }))
+      }
       setSuccess('Photo uploaded successfully!')
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError('Failed to upload photo')
+      setError(err.response?.data?.message || 'Failed to upload photo')
+    } finally {
+      setPhotoLoading(false)
     }
   }
 
+  const photoUrl = user?.photo
+    ? `${BASE_URL}${user.photo.startsWith('/') ? '' : '/'}${user.photo}`
+    : null
+
   return (
-    <div className="py-8 max-w-2xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+    <div className="min-h-screen py-8 md:py-12">
+      <EditorialSection
+        title="Profil Saya"
+        subtitle="Kelola informasi akun dan foto profil"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
-        <p className="text-slate-400">Manage your account information</p>
-      </motion.div>
+        <div className="max-w-2xl mx-auto space-y-6 md:space-y-7">
+          {/* Photo Card */}
+          <VintageCard>
+            <div className="card-pad">
+              <div className="flex flex-col items-center gap-6">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="relative"
+                >
+                  <div className="w-28 h-28 md:w-36 md:h-36 border-2 border-white/20 flex items-center justify-center overflow-hidden">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={user?.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-12 h-12 text-[#444444]" />
+                    )}
+                  </div>
+                  <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-white text-black border border-white flex items-center justify-center cursor-pointer hover:bg-[#cccccc] transition-colors">
+                    <Camera className="w-4 h-4" />
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </motion.div>
 
-      {error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/50 text-red-300 text-sm"
-        >
-          {error}
-        </motion.div>
-      )}
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-white uppercase tracking-wide">
+                    {user?.name}
+                  </h3>
+                  <p className="text-sm text-[#666666] mt-1">{user?.email}</p>
+                  <span className="inline-block mt-3 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] bg-white text-black">
+                    {user?.role || 'User'}
+                  </span>
+                </div>
 
-      {success && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/50 text-green-300 text-sm"
-        >
-          ✓ {success}
-        </motion.div>
-      )}
+                {photoLoading && (
+                  <p className="text-xs text-[#666666] animate-pulse">Uploading photo...</p>
+                )}
+              </div>
+            </div>
+          </VintageCard>
 
-      <motion.form
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        onSubmit={handleSubmit}
-        className="glass rounded-lg p-6 space-y-6"
-      >
-        {/* Photo Section */}
-        <div className="text-center pb-6 border-b border-slate-700">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mx-auto mb-4 flex items-center justify-center">
-            {user?.photo ? (
-              <img src={user.photo} alt={user.name} className="w-full h-full rounded-full object-cover" />
-            ) : (
-              <User className="w-10 h-10 text-white" />
-            )}
-          </div>
-          <label className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition cursor-pointer">
-            <Camera className="w-4 h-4" />
-            <span>Change Photo</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              className="hidden"
-            />
-          </label>
+          {/* Messages */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="p-4 border-l-2 border-white bg-[#0a0a0a]"
+            >
+              <p className="text-white text-sm">{error}</p>
+            </motion.div>
+          )}
+          {success && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="p-4 border-l-2 border-white bg-[#0a0a0a] flex items-center gap-2"
+            >
+              <CheckCircle className="w-5 h-5 flex-shrink-0 text-white" />
+              <p className="text-white text-sm">{success}</p>
+            </motion.div>
+          )}
+
+          {/* Profile Form */}
+          <VintageCard>
+            <form onSubmit={handleSubmit} className="card-pad space-y-6">
+              <h2 className="card-title card-divider">
+                Edit Profil
+              </h2>
+
+              <VintageInput
+                label="Nama Lengkap"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nama lengkap"
+                required
+              />
+
+              <VintageInput
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="email@example.com"
+                required
+              />
+
+              <VintageButton
+                type="submit"
+                variant="primary"
+                isLoading={loading}
+                className="w-full"
+              >
+                Simpan Perubahan
+              </VintageButton>
+            </form>
+          </VintageCard>
         </div>
-
-        {/* Form Fields */}
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full pl-10 pr-4 py-2 rounded-lg glass border border-slate-600 focus:border-indigo-500 focus:outline-none text-white transition"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full pl-10 pr-4 py-2 rounded-lg glass border border-slate-600 focus:border-indigo-500 focus:outline-none text-white transition"
-              disabled
-            />
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-4 pt-4 border-t border-slate-700">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg transition disabled:opacity-50"
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </motion.form>
+      </EditorialSection>
     </div>
   )
 }

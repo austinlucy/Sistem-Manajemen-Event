@@ -94,13 +94,27 @@ export const updateRegistrationStatus = async (req, res) => {
 
     // Verify admin owns event
     const [check] = await pool.query(`
-      SELECT r.id FROM registrations r
+      SELECT r.id, r.event_id FROM registrations r
       JOIN events e ON r.event_id = e.id
       WHERE r.id = ? AND e.admin_id = ?
     `, [registrationId, admin_id])
 
     if (check.length === 0) {
       return res.status(403).json({ message: 'Unauthorized' })
+    }
+
+    // Check quota before approving
+    if (status === 'approved') {
+      const [[quotaCheck]] = await pool.query(`
+        SELECT e.quota,
+          (SELECT COUNT(*) FROM registrations WHERE event_id = e.id AND status_id = 2) as approved_count
+        FROM events e
+        WHERE e.id = ?
+      `, [check[0].event_id])
+
+      if (quotaCheck && quotaCheck.approved_count >= quotaCheck.quota) {
+        return res.status(400).json({ message: 'Event quota has been reached' })
+      }
     }
 
     await pool.query(

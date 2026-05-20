@@ -11,7 +11,7 @@ export const getUserProfile = async (req, res) => {
   try {
     const user_id = req.user.id
     const [users] = await pool.query(
-      'SELECT id, name, email, photo FROM users WHERE id = ?',
+      'SELECT id, name, email, role, photo FROM users WHERE id = ?',
       [user_id]
     )
 
@@ -32,12 +32,35 @@ export const updateUserProfile = async (req, res) => {
     const user_id = req.user.id
     const { name, email } = req.body
 
+    const [users] = await pool.query(
+      'SELECT photo FROM users WHERE id = ?',
+      [user_id]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
     await pool.query(
       'UPDATE users SET name=?, email=?, updated_at=NOW() WHERE id=?',
       [name, email, user_id]
     )
 
-    res.json({ message: 'Profile updated successfully' })
+    const [updatedUsers] = await pool.query(
+      'SELECT id, name, email, photo FROM users WHERE id = ? LIMIT 1',
+      [user_id]
+    )
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUsers[0].id,
+        name: updatedUsers[0].name,
+        email: updatedUsers[0].email,
+        role: 'user',
+        photo: updatedUsers[0].photo || users[0].photo || null
+      }
+    })
   } catch (error) {
     console.error('Update profile error:', error)
     res.status(500).json({ message: 'Failed to update profile' })
@@ -60,9 +83,21 @@ export const uploadPhoto = async (req, res) => {
       [photoPath, user_id]
     )
 
+    const [users] = await pool.query(
+      'SELECT id, name, email, photo FROM users WHERE id = ?',
+      [user_id]
+    )
+
     res.json({
       message: 'Photo uploaded successfully',
-      photoPath
+      photoPath,
+      user: {
+        id: users[0].id,
+        name: users[0].name,
+        email: users[0].email,
+        role: 'user',
+        photo: users[0].photo || photoPath
+      }
     })
   } catch (error) {
     console.error('Upload photo error:', error)

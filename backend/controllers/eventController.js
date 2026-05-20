@@ -5,7 +5,8 @@ export const getAllEvents = async (req, res) => {
   try {
     const limit = req.query.limit || 100
     const [events] = await pool.query(`
-      SELECT e.*, c.category_name, a.name as admin_name
+      SELECT e.*, c.category_name, a.name as admin_name,
+        (SELECT COUNT(*) FROM registrations r WHERE r.event_id = e.id AND r.status_id = 2) as registered_count
       FROM events e
       LEFT JOIN event_categories c ON e.category_id = c.id
       LEFT JOIN admins a ON e.admin_id = a.id
@@ -27,7 +28,8 @@ export const getEventById = async (req, res) => {
   try {
     const { id } = req.params
     const [events] = await pool.query(`
-      SELECT e.*, c.category_name, a.name as admin_name
+      SELECT e.*, c.category_name, a.name as admin_name,
+        (SELECT COUNT(*) FROM registrations r WHERE r.event_id = e.id AND r.status_id = 2) as registered_count
       FROM events e
       LEFT JOIN event_categories c ON e.category_id = c.id
       LEFT JOIN admins a ON e.admin_id = a.id
@@ -48,12 +50,21 @@ export const getEventById = async (req, res) => {
 // Create event (admin only)
 export const createEvent = async (req, res) => {
   try {
-    const { title, description, banner, location, quota, event_date, category_id } = req.body
+    const { title, description, location, quota, event_date, category_id } = req.body
     const admin_id = req.user.id
+    const banner = req.file ? `/uploads/events/${req.file.filename}` : (req.body.banner || null)
 
     // Validate input
     if (!title || !description || !location || !quota || !event_date) {
       return res.status(400).json({ message: 'Missing required fields' })
+    }
+
+    // Validate event date is in the future
+    const eventDateObj = new Date(event_date)
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    if (eventDateObj < now) {
+      return res.status(400).json({ message: 'Event date must be in the future' })
     }
 
     const [result] = await pool.query(
@@ -76,7 +87,18 @@ export const createEvent = async (req, res) => {
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params
-    const { title, description, banner, location, quota, event_date } = req.body
+    const { title, description, location, quota, event_date } = req.body
+    const banner = req.file ? `/uploads/events/${req.file.filename}` : (req.body.banner || null)
+
+    // Validate event date if provided
+    if (event_date) {
+      const eventDateObj = new Date(event_date)
+      const now = new Date()
+      now.setHours(0, 0, 0, 0)
+      if (eventDateObj < now) {
+        return res.status(400).json({ message: 'Event date must be in the future' })
+      }
+    }
 
     const [result] = await pool.query(
       `UPDATE events SET title=?, description=?, banner=?, location=?, quota=?, event_date=?, updated_at=NOW()
@@ -92,6 +114,21 @@ export const updateEvent = async (req, res) => {
   } catch (error) {
     console.error('Update event error:', error)
     res.status(500).json({ message: 'Failed to update event' })
+  }
+}
+
+// Get public schedules for an event
+export const getPublicSchedules = async (req, res) => {
+  try {
+    const { id } = req.params
+    const [schedules] = await pool.query(
+      'SELECT * FROM schedules WHERE event_id = ? ORDER BY start_time',
+      [id]
+    )
+    res.json(schedules)
+  } catch (error) {
+    console.error('Get schedules error:', error)
+    res.status(500).json({ message: 'Failed to fetch schedules' })
   }
 }
 

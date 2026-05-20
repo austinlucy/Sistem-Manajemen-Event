@@ -4,8 +4,20 @@ import api from './api'
 export const eventService = {
   getAllEvents: (params) => api.get('/events', { params }),
   getEventById: (id) => api.get(`/events/${id}`),
-  createEvent: (data) => api.post('/events', data),
-  updateEvent: (id, data) => api.put(`/events/${id}`, data),
+  getEventSchedules: (id) => api.get(`/events/${id}/schedules`),
+  createEvent: (data) => {
+    // If FormData, let Axios set Content-Type automatically
+    if (data instanceof FormData) {
+      return api.post('/events', data)
+    }
+    return api.post('/events', data)
+  },
+  updateEvent: (id, data) => {
+    if (data instanceof FormData) {
+      return api.put(`/events/${id}`, data)
+    }
+    return api.put(`/events/${id}`, data)
+  },
   deleteEvent: (id) => api.delete(`/events/${id}`),
 }
 
