@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext'
 import { userService } from '../services'
 import { EditorialSection, VintageButton, VintageCard, VintageInput } from '../components/Vintage'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api'
 const BASE_URL = API_URL.replace('/api', '')
 
 export default function ProfilePage() {

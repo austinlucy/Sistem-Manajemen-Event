@@ -5,8 +5,10 @@ import { eventService, adminService } from '../services'
 import { VintageCard, VintageButton, VintageInput } from '../components/Vintage'
 import useAlert from '../hooks/useAlert'
 import AdminHeroBackground from '../components/AdminHeroBackground'
+import { useAuth } from '../hooks/useAuth'
 
 export default function AdminSchedulesPage() {
+  const { user } = useAuth()
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState('')
   const [schedules, setSchedules] = useState([])
@@ -23,8 +25,10 @@ export default function AdminSchedulesPage() {
   const { showAlert } = useAlert()
 
   useEffect(() => {
-    fetchEvents()
-  }, [])
+    if (user) {
+      fetchEvents()
+    }
+  }, [user])
 
   useEffect(() => {
     if (selectedEvent) {
@@ -44,9 +48,13 @@ export default function AdminSchedulesPage() {
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      const response = await eventService.getAllEvents({ limit: 100 })
+      const response = await eventService.getAllEvents({ admin_id: user?.id, limit: 100 })
       const eventsData = response.data?.data ?? response.data
-      setEvents(Array.isArray(eventsData) ? eventsData : [])
+      const eventList = Array.isArray(eventsData) ? eventsData : []
+      const ownedEvents = user?.id
+        ? eventList.filter(event => String(event.admin_id) === String(user.id))
+        : eventList
+      setEvents(ownedEvents)
     } catch (err) {
       setError('Failed to load events')
     } finally {

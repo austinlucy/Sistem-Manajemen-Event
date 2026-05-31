@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { motion } from 'framer-motion'
-import { Check, X } from 'lucide-react'
+import { Check, X, Download } from 'lucide-react'
 import { adminService, eventService } from '../services'
+import { AuthContext } from '../context/AuthContext'
 import { VintageCard } from '../components/Vintage'
 import AdminHeroBackground from '../components/AdminHeroBackground'
 
 export default function AdminParticipantsPage() {
+  const { user } = useContext(AuthContext)
   const [registrations, setRegistrations] = useState([])
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
+  const [error, setError] = useState('')
+  const [updatingId, setUpdatingId] = useState(null)
   const [events, setEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState('')
 
@@ -33,21 +37,31 @@ export default function AdminParticipantsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await eventService.getAllEvents()
+      setError('')
+      const response = await eventService.getAllEvents({ limit: 100 })
       const eventsData = response.data?.data ?? response.data
-      setEvents(Array.isArray(eventsData) ? eventsData : [])
+      const eventList = Array.isArray(eventsData) ? eventsData : []
+
+      // Halaman kelola peserta hanya bisa mengelola event milik admin yang sedang login.
+      // Jika semua event ditampilkan, tombol approve/reject akan kena 403 Unauthorized dari backend.
+      const ownedEvents = eventList.filter(event => !event.admin_id || String(event.admin_id) === String(user?.id))
+      setEvents(ownedEvents)
     } catch (e) {
       console.error('Failed to fetch events:', e)
+      setError(e.response?.data?.message || 'Gagal memuat daftar event')
     }
   }
 
   const fetchRegistrations = async (eventId) => {
     try {
       setLoading(true)
+      setError('')
       const response = await adminService.getRegistrations(eventId)
       setRegistrations(response.data || [])
     } catch (err) {
       console.error('Failed to fetch registrations:', err)
+      setRegistrations([])
+      setError(err.response?.data?.message || 'Gagal memuat peserta event')
     } finally {
       setLoading(false)
     }
@@ -55,6 +69,8 @@ export default function AdminParticipantsPage() {
 
   const updateStatus = async (registrationId, status) => {
     try {
+      setError('')
+      setUpdatingId(registrationId)
       await adminService.updateRegistrationStatus(registrationId, status)
       setSuccess(`✓ Peserta ${status === 'approved' ? 'diterima' : 'ditolak'}!`)
       if (selectedEvent) {
@@ -62,7 +78,35 @@ export default function AdminParticipantsPage() {
       }
     } catch (err) {
       console.error('Failed to update status:', err)
+      setError(err.response?.data?.message || 'Gagal mengubah status peserta')
+    } finally {
+      setUpdatingId(null)
     }
+  }
+
+  const exportParticipantsCsv = () => {
+    const selectedTitle = events.find(event => String(event.id) === String(selectedEvent))?.title || 'event'
+    const headers = ['Nama', 'Email', 'Status', 'Tanggal Daftar']
+    const rows = registrations.map(reg => [
+      reg.user_name,
+      reg.user_email,
+      reg.status || 'pending',
+      reg.registered_at ? new Date(reg.registered_at).toLocaleString('id-ID') : ''
+    ])
+    const escapeCsv = (value) => {
+      const str = value == null ? '' : String(value)
+      return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
+    }
+    const csv = [headers, ...rows].map(row => row.map(escapeCsv).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `peserta-${selectedTitle.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -103,6 +147,18 @@ export default function AdminParticipantsPage() {
           >
             <Check className="w-4 h-4 text-white flex-shrink-0" />
             <span className="text-white text-sm">{success}</span>
+          </motion.div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 border-l-2 border-red-400 bg-[#0a0a0a] flex items-center gap-2"
+          >
+            <X className="w-4 h-4 text-red-300 flex-shrink-0" />
+            <span className="text-red-100 text-sm">{error}</span>
           </motion.div>
         )}
 
@@ -153,9 +209,22 @@ export default function AdminParticipantsPage() {
               animate={{ opacity: 1 }}
               className="space-y-3"
             >
-              {registrations.map((reg, i) => (
+              <div className="mb-5 flex justify-end">
+                <button
+                  onClick={exportParticipantsCsv}
+                  className="flex items-center gap-2 border border-[#333333] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white hover:bg-white hover:text-black transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export CSV
+                </button>
+              </div>
+              {registrations.map((reg, i) => {
+                const status = (reg.status || 'pending').toLowerCase()
+                const isUpdating = updatingId === reg.id
+
+                return (
                 <motion.div
-                  key={i}
+                  key={reg.id || i}
                   initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -170,31 +239,35 @@ export default function AdminParticipantsPage() {
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <span
                           className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] border ${
-                            reg.status === 'approved'
+                            status === 'approved'
                               ? 'bg-white text-black border-white'
-                              : reg.status === 'pending'
+                              : status === 'pending'
                               ? 'bg-[#0a0a0a] text-white border-[#222222]'
                               : 'bg-[#111111] text-[#737373] border-[#222222]'
                           }`}
                         >
-                          {reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending'}
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
                         </span>
-                        {reg.status === 'pending' && (
+                        {status === 'pending' && (
                           <div className="flex gap-1.5">
                             <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              type="button"
+                              whileHover={{ scale: isUpdating ? 1 : 1.05 }}
+                              whileTap={{ scale: isUpdating ? 1 : 0.95 }}
                               onClick={() => updateStatus(reg.id, 'approved')}
-                              className="p-2 bg-white text-black hover:bg-[#eeeeee] transition"
+                              disabled={isUpdating}
+                              className="p-2 bg-white text-black hover:bg-[#eeeeee] transition disabled:cursor-not-allowed disabled:opacity-50"
                               title="Approve"
                             >
                               <Check className="w-4 h-4" />
                             </motion.button>
                             <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              type="button"
+                              whileHover={{ scale: isUpdating ? 1 : 1.05 }}
+                              whileTap={{ scale: isUpdating ? 1 : 0.95 }}
                               onClick={() => updateStatus(reg.id, 'rejected')}
-                              className="p-2 bg-[#0a0a0a] text-white hover:bg-[#111111] transition border border-[#222222]"
+                              disabled={isUpdating}
+                              className="p-2 bg-[#0a0a0a] text-white hover:bg-[#111111] transition border border-[#222222] disabled:cursor-not-allowed disabled:opacity-50"
                               title="Reject"
                             >
                               <X className="w-4 h-4" />
@@ -205,7 +278,8 @@ export default function AdminParticipantsPage() {
                     </div>
                   </VintageCard>
                 </motion.div>
-              ))}
+                )
+              })}
             </motion.div>
           )}
         </div>

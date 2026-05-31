@@ -5,8 +5,9 @@ import { Menu, X, Search, Bell, User, ChevronDown, LogOut, Settings } from 'luci
 import { useAuth } from '../../hooks/useAuth'
 import useAlert from '../../hooks/useAlert'
 import Logo from '../Logo'
+import { notificationService } from '../../services'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api'
 const BASE_URL = API_URL.replace('/api', '')
 
 export default function RetroNavbar() {
@@ -17,6 +18,8 @@ export default function RetroNavbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState([])
   const [scrolled, setScrolled] = useState(false)
   const profileMenuRef = useRef(null)
 
@@ -25,6 +28,24 @@ export default function RetroNavbar() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetchNotifications = async () => {
+      try {
+        const response = await notificationService.getMyNotifications()
+        const data = response.data?.data ?? response.data
+        setNotifications(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.warn('Notifications unavailable:', err?.message)
+      }
+    }
+
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30000)
+    return () => clearInterval(interval)
+  }, [user])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -36,6 +57,19 @@ export default function RetroNavbar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const unreadCount = notifications.filter(item => !item.is_read).length
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.is_read) {
+        await notificationService.markRead(notification.id)
+        setNotifications(prev => prev.map(item => item.id === notification.id ? { ...item, is_read: 1 } : item))
+      }
+    } catch (err) {
+      console.warn('Failed to mark notification read:', err?.message)
+    }
+  }
 
   const handleLogout = () => {
     logout()
@@ -128,14 +162,47 @@ export default function RetroNavbar() {
 
             {/* Notification */}
             {user && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="hidden md:flex p-2.5 text-[#555555] hover:text-white transition-colors duration-300 relative"
-              >
-                <Bell className="w-[16px] h-[16px]" />
-                <span className="absolute top-1.5 right-1.5 w-[5px] h-[5px] bg-white rounded-full animate-pulse" />
-              </motion.button>
+              <div className="relative hidden md:block">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowNotifications(prev => !prev)}
+                  className="flex p-2.5 text-[#555555] hover:text-white transition-colors duration-300 relative"
+                >
+                  <Bell className="w-[16px] h-[16px]" />
+                  {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] px-1 bg-white text-black text-[8px] font-black rounded-full flex items-center justify-center">{unreadCount}</span>}
+                </motion.button>
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      className="absolute right-0 top-full mt-3 w-80 max-h-96 overflow-auto border border-white/10 bg-black/95 shadow-[0_24px_70px_rgba(0,0,0,0.65)]"
+                      style={{ backdropFilter: 'blur(18px) saturate(1.4)' }}
+                    >
+                      <div className="border-b border-white/10 p-4">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white">Notifikasi</p>
+                      </div>
+                      <div className="p-2">
+                        {notifications.length === 0 ? (
+                          <p className="px-3 py-6 text-center text-xs text-[#737373]">Belum ada notifikasi</p>
+                        ) : notifications.map(notification => (
+                          <button
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            className={`w-full border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-white/5 ${notification.is_read ? 'opacity-60' : 'opacity-100'}`}
+                          >
+                            <p className="text-xs font-bold text-white">{notification.title}</p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-[#737373]">{notification.message}</p>
+                            <p className="mt-2 text-[9px] uppercase tracking-[0.12em] text-[#525252]">{new Date(notification.created_at).toLocaleString('id-ID')}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
 
             {user ? (

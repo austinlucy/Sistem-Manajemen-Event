@@ -10,6 +10,25 @@ const __dirname = path.dirname(__filename)
 export const getUserProfile = async (req, res) => {
   try {
     const user_id = req.user.id
+    if (req.user.role === 'admin') {
+      const [admins] = await pool.query(
+        'SELECT id, name, email FROM admins WHERE id = ?',
+        [user_id]
+      )
+
+      if (admins.length === 0) {
+        return res.status(404).json({ message: 'Admin not found' })
+      }
+
+      return res.json({
+        id: admins[0].id,
+        name: admins[0].name,
+        email: admins[0].email,
+        role: 'admin',
+        photo: null
+      })
+    }
+
     const [users] = await pool.query(
       'SELECT id, name, email, role, photo FROM users WHERE id = ?',
       [user_id]
@@ -31,6 +50,42 @@ export const updateUserProfile = async (req, res) => {
   try {
     const user_id = req.user.id
     const { name, email } = req.body
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' })
+    }
+
+    if (req.user.role === 'admin') {
+      const [admins] = await pool.query(
+        'SELECT id FROM admins WHERE id = ?',
+        [user_id]
+      )
+
+      if (admins.length === 0) {
+        return res.status(404).json({ message: 'Admin not found' })
+      }
+
+      await pool.query(
+        'UPDATE admins SET name=?, email=?, updated_at=NOW() WHERE id=?',
+        [name, email, user_id]
+      )
+
+      const [updatedAdmins] = await pool.query(
+        'SELECT id, name, email FROM admins WHERE id = ? LIMIT 1',
+        [user_id]
+      )
+
+      return res.json({
+        message: 'Profile updated successfully',
+        user: {
+          id: updatedAdmins[0].id,
+          name: updatedAdmins[0].name,
+          email: updatedAdmins[0].email,
+          role: 'admin',
+          photo: null
+        }
+      })
+    }
 
     const [users] = await pool.query(
       'SELECT photo FROM users WHERE id = ?',

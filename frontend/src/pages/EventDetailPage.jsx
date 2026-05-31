@@ -9,7 +9,7 @@ import { VintageButton, VintageCard } from '../components/Vintage'
 import { getEventImageData, resolveEventImageUrl } from '../utils/eventImageMapper'
 import HeroConstellationBackground from '../components/HeroConstellationBackground'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api'
 const BASE_URL = API_URL.replace('/api', '')
 
 export default function EventDetailPage() {

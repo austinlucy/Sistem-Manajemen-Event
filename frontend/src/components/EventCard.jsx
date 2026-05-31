@@ -1,7 +1,12 @@
 import { motion } from 'framer-motion'
 import { MapPin, Calendar, Users } from 'lucide-react'
+import { resolveEventImageUrl } from '../utils/eventImageMapper'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api'
+const BASE_URL = API_URL.replace('/api', '')
 
 export default function EventCard({ event, onClick }) {
+  const finalImageUrl = resolveEventImageUrl(event, BASE_URL)
   return (
     <motion.div
       whileHover={{ y: -8 }}
@@ -10,17 +15,14 @@ export default function EventCard({ event, onClick }) {
     >
       {/* Banner */}
       <div className="h-48 bg-[#111111] overflow-hidden relative">
-        {event.banner ? (
-          <img
-            src={event.banner}
-            alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-[#525252] text-sm">No Banner</span>
-          </div>
-        )}
+        <img
+          src={finalImageUrl}
+          alt={event.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          onError={(e) => {
+            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23111111" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="14" fill="%23525252"%3ENo Banner%3C/text%3E%3C/svg%3E'
+          }}
+        />
       </div>
 
       {/* Content */}

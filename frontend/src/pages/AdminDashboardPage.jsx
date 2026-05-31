@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CalendarDays, Users, Activity, Clock, RefreshCw, Download, BarChart3, LayoutDashboard } from 'lucide-react'
 import { DashboardContext } from '../context/DashboardContext'
+import { adminService } from '../services'
 import { VintageCard, VintageButton } from '../components/Vintage'
 import HeroDashboardBackground from '../components/HeroDashboardBackground'
 
@@ -39,27 +40,21 @@ export default function AdminDashboardPage() {
     return lastUpdated.toLocaleTimeString()
   }
 
-  const handleExportReport = () => {
-    const reportContent = `
-EVENT HUB - ADMIN REPORT
-Generated: ${new Date().toLocaleString('id-ID')}
-================================
-Total Events: ${stats?.totalEvents || 0}
-Total Peserta: ${stats?.totalParticipants || 0}
-Event Aktif: ${stats?.activeEvents || 0}
-Menunggu Approval: ${stats?.pendingApprovals || 0}
-================================
-    `.trim()
-
-    const blob = new Blob([reportContent], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `report-${new Date().toISOString().slice(0, 10)}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const handleExportReport = async () => {
+    try {
+      const response = await adminService.exportReport()
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `event-hub-report-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Failed to export report:', err)
+    }
   }
 
   if (loading && !stats) {

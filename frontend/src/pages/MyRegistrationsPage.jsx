@@ -52,30 +52,321 @@ export default function MyRegistrationsPage() {
   }
 
   const handleDownloadTicket = (registration) => {
-    const ticketContent = `
-================================
-      EVENT HUB - TIKET
-================================
+    const ticketContent = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Tiket - ${registration.event_title}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #050505;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    
+    /* Action Buttons */
+    .actions {
+      margin-bottom: 30px;
+      display: flex;
+      gap: 15px;
+      z-index: 10;
+    }
+    .btn {
+      background: transparent;
+      color: #ffffff;
+      border: 1px solid #333333;
+      padding: 10px 20px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn:hover {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+    .btn-print {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+    .btn-print:hover {
+      background: #eeeeee;
+    }
 
-Event: ${registration.event_title}
-Tanggal: ${new Date(registration.event_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-Lokasi: ${registration.event_location || 'TBA'}
-Status: ${registration.status?.toUpperCase() || 'PENDING'}
+    /* Ticket Container */
+    .ticket {
+      width: 100%;
+      max-width: 650px;
+      background: #0d0d0d;
+      border: 1px solid #222222;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+    }
 
-Didaftarkan oleh: ${registration.user_name || 'Guest'}
-Tanggal Daftar: ${new Date(registration.created_at).toLocaleDateString('id-ID')}
+    /* Decorative Ticket Cuts */
+    .ticket::before, .ticket::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: #050505;
+      border-radius: 50%;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+    }
+    .ticket::before {
+      left: -12px;
+      border-right: 1px solid #222222;
+    }
+    .ticket::after {
+      right: -12px;
+      border-left: 1px solid #222222;
+    }
 
-================================
-      TIDAK DAPAT DIPINDAH
-         TANGAN
-================================
-    `.trim()
+    /* Ticket Header */
+    .header {
+      padding: 25px 30px;
+      border-bottom: 2px dashed #222222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+    .status-badge {
+      border: 1px solid #ffffff;
+      padding: 5px 12px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      background: #ffffff;
+      color: #000000;
+    }
+    .status-pending {
+      border-color: #555555;
+      background: transparent;
+      color: #888888;
+    }
 
-    const blob = new Blob([ticketContent], { type: 'text/plain' })
+    /* Ticket Body */
+    .body {
+      padding: 40px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    
+    .event-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-cols: 1fr 1fr;
+      gap: 20px;
+      margin-top: 10px;
+    }
+    
+    .info-label {
+      font-size: 9px;
+      color: #666666;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .info-val {
+      font-size: 14px;
+      color: #ffffff;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    /* Ticket Footer & Barcode */
+    .footer {
+      padding: 25px 30px;
+      border-top: 1px dashed #222222;
+      background: #0a0a0a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .meta-details {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .meta-item {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: #555555;
+    }
+    .meta-val {
+      color: #aaaaaa;
+    }
+
+    /* CSS Barcode Generator */
+    .barcode {
+      display: flex;
+      align-items: center;
+      height: 50px;
+      background: #ffffff;
+      padding: 8px 15px;
+      border-radius: 2px;
+    }
+    .barcode-line {
+      height: 100%;
+      background: #000000;
+      margin-right: 2px;
+    }
+    .barcode-line:nth-child(3n) { width: 3px; }
+    .barcode-line:nth-child(3n+1) { width: 1px; }
+    .barcode-line:nth-child(3n+2) { width: 2px; }
+    .barcode-line:last-child { margin-right: 0; }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0;
+      }
+      .actions {
+        display: none !important;
+      }
+      .ticket {
+        border: 2px solid #000000 !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        color: #000000 !important;
+      }
+      .ticket::before, .ticket::after {
+        background: #ffffff !important;
+        border-color: #000000 !important;
+      }
+      .header, .footer {
+        border-color: #000000 !important;
+        background: #ffffff !important;
+      }
+      .info-val, .event-title {
+        color: #000000 !important;
+      }
+      .status-badge {
+        border-color: #000000 !important;
+        background: #000000 !important;
+        color: #ffffff !important;
+      }
+      .meta-item {
+        color: #666666 !important;
+      }
+      .meta-val {
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="actions">
+    <button class="btn btn-print" onclick="window.print()">Cetak Tiket</button>
+    <button class="btn" onclick="window.close()">Tutup</button>
+  </div>
+
+  <div class="ticket">
+    <div class="header">
+      <div class="logo">EVENT HUB // ADMIT ONE</div>
+      <div class="status-badge ${registration.status === 'approved' ? '' : 'status-pending'}">
+        ${registration.status?.toUpperCase() || 'PENDING'}
+      </div>
+    </div>
+    
+    <div class="body">
+      <div>
+        <div class="info-label">Nama Event</div>
+        <h2 class="event-title">${registration.event_title}</h2>
+      </div>
+      
+      <div class="info-grid">
+        <div>
+          <div class="info-label">Tanggal & Waktu</div>
+          <div class="info-val">
+            ${new Date(registration.event_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <br>
+            Pukul ${new Date(registration.event_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+          </div>
+        </div>
+        <div>
+          <div class="info-label">Lokasi</div>
+          <div class="info-val">${registration.event_location || 'Akan Diberitahukan (TBA)'}</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div class="meta-details">
+        <div class="meta-item">NO. REG: <span class="meta-val">#${String(registration.id).padStart(6, '0')}</span></div>
+        <div class="meta-item">NAMA: <span class="meta-val">${registration.user_name || 'Guest'}</span></div>
+        <div class="meta-item">DIKELUARKAN: <span class="meta-val">${new Date(registration.registered_at || registration.created_at).toLocaleDateString('id-ID')}</span></div>
+      </div>
+      
+      <div class="barcode">
+        <div class="barcode-line" style="width: 2px;"></div>
+        <div class="barcode-line" style="width: 1px;"></div>
+        <div class="barcode-line" style="width: 3px;"></div>
+        <div class="barcode-line" style="width: 1px;"></div>
+        <div class="barcode-line" style="width: 2px;"></div>
+        <div class="barcode-line" style="width: 4px;"></div>
+        <div class="barcode-line" style="width: 1px;"></div>
+        <div class="barcode-line" style="width: 3px;"></div>
+        <div class="barcode-line" style="width: 2px;"></div>
+        <div class="barcode-line" style="width: 1px;"></div>
+        <div class="barcode-line" style="width: 4px;"></div>
+        <div class="barcode-line" style="width: 2px;"></div>
+        <div class="barcode-line" style="width: 1px;"></div>
+        <div class="barcode-line" style="width: 3px;"></div>
+        <div class="barcode-line" style="width: 1px;"></div>
+        <div class="barcode-line" style="width: 2px;"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([ticketContent], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `tiket-${registration.event_title?.replace(/\s+/g, '-').toLowerCase() || 'event'}.txt`
+    a.download = `tiket-${registration.event_title?.replace(/\s+/g, '-').toLowerCase() || 'event'}.html`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

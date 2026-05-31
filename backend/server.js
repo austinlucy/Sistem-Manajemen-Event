@@ -15,6 +15,7 @@ import myRegistrationsRoutes from './routes/my-registrations.js'
 import userRoutes from './routes/users.js'
 import categoryRoutes from './routes/categories.js'
 import adminRoutes from './routes/admin.js'
+import notificationRoutes from './routes/notifications.js'
 
 const app = express()
 const __filename = fileURLToPath(import.meta.url)
@@ -34,6 +35,7 @@ app.use('/api/my-registrations', myRegistrationsRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

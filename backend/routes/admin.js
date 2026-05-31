@@ -3,6 +3,7 @@ import {
   getDashboardStats, 
   getEventRegistrations, 
   updateRegistrationStatus,
+  exportAdminReport,
   getEventSchedules,
   createSchedule,
   updateSchedule,
@@ -12,8 +13,9 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Stats
+// Stats & reports
 router.get('/stats', authMiddleware, adminMiddleware, getDashboardStats)
+router.get('/reports/export', authMiddleware, adminMiddleware, exportAdminReport)
 
 // Registrations
 router.get('/events/:eventId/registrations', authMiddleware, adminMiddleware, getEventRegistrations)

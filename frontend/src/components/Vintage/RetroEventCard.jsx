@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import VintageCard from './VintageCard'
 import { getEventImageData, resolveEventImageUrl } from '../../utils/eventImageMapper'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api'
 const BASE_URL = API_URL.replace('/api', '')
 
 export default function RetroEventCard({ event, isRegistered, onRegister, onUnregister }) {

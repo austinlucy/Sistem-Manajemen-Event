@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, ArrowRight, X } from 'lucide-react'
+import { Search, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { eventService, categoryService } from '../services'
 import { RetroEventCard, VintageCard, VintageButton } from '../components/Vintage'
 import HeroGridBackground from '../components/HeroGridBackground'
@@ -13,26 +13,45 @@ export default function EventsPage() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ page: 1, limit: 9, total: 0, totalPages: 1 })
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchData()
+    fetchCategories()
   }, [])
 
-  const fetchData = async () => {
+  useEffect(() => {
+    const timer = setTimeout(() => fetchEvents(), 250)
+    return () => clearTimeout(timer)
+  }, [page, searchTerm, selectedCategory])
+
+  const fetchCategories = async () => {
+    try {
+      const categoriesRes = await categoryService.getAllCategories()
+      const cats = categoriesRes.data?.data ?? categoriesRes.data
+      setCategories(Array.isArray(cats) ? cats : [])
+    } catch (err) {
+      console.error('Failed to fetch categories:', err)
+    }
+  }
+
+  const fetchEvents = async () => {
     try {
       setLoading(true)
       setError('')
 
-      const [eventsRes, categoriesRes] = await Promise.all([
-        eventService.getAllEvents(),
-        categoryService.getAllCategories()
-      ])
+      const eventsRes = await eventService.getAllEvents({
+        page,
+        limit: 9,
+        search: searchTerm,
+        category_id: selectedCategory,
+        sort: 'date_asc'
+      })
 
       const eventsData = eventsRes.data?.data ?? eventsRes.data
       setEvents(Array.isArray(eventsData) ? eventsData : [])
-      const cats = categoriesRes.data?.data ?? categoriesRes.data
-      setCategories(Array.isArray(cats) ? cats : [])
+      setPagination(eventsRes.data?.pagination || { page, limit: 9, total: 0, totalPages: 1 })
     } catch (err) {
       console.error('Failed to fetch data:', err)
       setError('Failed to load events')
@@ -41,14 +60,11 @@ export default function EventsPage() {
     }
   }
 
-  const filteredEvents = events.filter(event => {
-    const title = (event.title || '').toLowerCase()
-    const desc = (event.description || '').toLowerCase()
-    const term = searchTerm.toLowerCase()
-    const matchesSearch = title.includes(term) || desc.includes(term)
-    const matchesCategory = !selectedCategory || event.category_id == selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  const resetFilter = () => {
+    setSearchTerm('')
+    setSelectedCategory('')
+    setPage(1)
+  }
 
   const SkeletonCard = () => (
     <VintageCard className="h-96 !p-0" animate={false}>
@@ -104,7 +120,10 @@ export default function EventsPage() {
                     type="text"
                     placeholder="Cari event..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value)
+                      setPage(1)
+                    }}
                     className="input-mono pl-11"
                   />
                 </div>
@@ -114,7 +133,10 @@ export default function EventsPage() {
                   <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#525252] pointer-events-none" />
                   <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value)
+                      setPage(1)
+                    }}
                     className="input-mono pl-11 appearance-none cursor-pointer"
                   >
                     <option value="">Semua Kategori</option>
@@ -153,14 +175,11 @@ export default function EventsPage() {
           {!loading && (
             <div className="mb-8 flex items-center justify-between">
               <p className="text-[11px] uppercase tracking-[0.15em] text-[#525252] font-bold">
-                {filteredEvents.length} Event ditemukan
+                {pagination.total} Event ditemukan
               </p>
               {(searchTerm || selectedCategory) && (
                 <button
-                  onClick={() => {
-                    setSearchTerm('')
-                    setSelectedCategory('')
-                  }}
+                  onClick={resetFilter}
                   className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[#737373] hover:text-white transition-colors"
                 >
                   <X className="w-3 h-3" />
@@ -182,13 +201,13 @@ export default function EventsPage() {
                   <SkeletonCard key={i} />
                 ))}
               </div>
-            ) : filteredEvents.length > 0 ? (
+            ) : events.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7"
               >
-                {filteredEvents.map((event, idx) => (
+                {events.map((event, idx) => (
                   <motion.div
                     key={event.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -218,10 +237,7 @@ export default function EventsPage() {
                     </p>
                     <VintageButton
                       variant="outline"
-                      onClick={() => {
-                        setSearchTerm('')
-                        setSelectedCategory('')
-                      }}
+                      onClick={resetFilter}
                     >
                       Reset Filter
                     </VintageButton>
@@ -230,6 +246,36 @@ export default function EventsPage() {
               </motion.div>
             )}
           </motion.div>
+
+          {!loading && pagination.totalPages > 1 && (
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#1a1a1a] pt-8">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-[#525252] font-bold">
+                Halaman {pagination.page} dari {pagination.totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <VintageButton
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPrevPage}
+                  onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                  className="border-[#333333] text-white disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Prev
+                </VintageButton>
+                <VintageButton
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNextPage}
+                  onClick={() => setPage(prev => Math.min(prev + 1, pagination.totalPages))}
+                  className="border-[#333333] text-white disabled:opacity-40"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </VintageButton>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>

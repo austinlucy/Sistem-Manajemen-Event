@@ -370,18 +370,31 @@ export const getEventImageData = (event) => {
  * @returns {string}
  */
 export const resolveEventImageUrl = (event, baseUrl = '') => {
+  // Helper: cek apakah banner value valid (bukan "[object Object]" atau string aneh)
+  const isValidBannerValue = (val) => {
+    if (!val || typeof val !== 'string') return false;
+    if (val === '[object Object]' || val.startsWith('[object')) return false;
+    if (val.trim().length === 0) return false;
+    return true;
+  };
+
   // 1. Cek banner field (path absolute mulai dengan /uploads/...)
-  if (event.banner) {
+  if (isValidBannerValue(event.banner)) {
     if (event.banner.startsWith('http')) return event.banner;
-    // Kalau path sudah mulai dengan /uploads/, pakai langsung (Vite proxy ke backend)
-    if (event.banner.startsWith('/uploads/')) return event.banner;
+    // Kalau path sudah mulai dengan /uploads/, prepend baseUrl jika ada (production)
+    // Di dev, Vite proxy akan handle /uploads/ path secara otomatis
+    if (event.banner.startsWith('/uploads/')) {
+      return baseUrl ? `${baseUrl}${event.banner}` : event.banner;
+    }
     if (event.banner.length > 0) return `${baseUrl}/uploads/${event.banner}`;
   }
 
   // 2. Cek image_url field
-  if (event.image_url) {
+  if (isValidBannerValue(event.image_url)) {
     if (event.image_url.startsWith('http')) return event.image_url;
-    if (event.image_url.startsWith('/uploads/')) return event.image_url;
+    if (event.image_url.startsWith('/uploads/')) {
+      return baseUrl ? `${baseUrl}${event.image_url}` : event.image_url;
+    }
     if (event.image_url.length > 0) return `${baseUrl}/uploads/${event.image_url}`;
   }
 

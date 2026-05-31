@@ -4,8 +4,13 @@ import { Plus, Edit2, Trash2, Check, Calendar } from 'lucide-react'
 import { eventService } from '../services'
 import { VintageCard, VintageButton, VintageInput } from '../components/Vintage'
 import AdminHeroBackground from '../components/AdminHeroBackground'
+import { useAuth } from '../hooks/useAuth'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3006/api'
+const BASE_URL = API_URL.replace('/api', '')
 
 export default function AdminEventsPage() {
+  const { user } = useAuth()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -25,8 +30,10 @@ export default function AdminEventsPage() {
   const [bannerPreview, setBannerPreview] = useState('')
 
   useEffect(() => {
-    fetchEvents()
-  }, [])
+    if (user) {
+      fetchEvents()
+    }
+  }, [user])
 
   useEffect(() => {
     if (success) {
@@ -38,9 +45,13 @@ export default function AdminEventsPage() {
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      const response = await eventService.getAllEvents({ limit: 100 })
+      const response = await eventService.getAllEvents({ admin_id: user?.id, limit: 100 })
       const eventsData = response.data?.data ?? response.data
-      setEvents(Array.isArray(eventsData) ? eventsData : [])
+      const eventList = Array.isArray(eventsData) ? eventsData : []
+      const ownedEvents = user?.id
+        ? eventList.filter(event => String(event.admin_id) === String(user.id))
+        : eventList
+      setEvents(ownedEvents)
     } catch (err) {
       setError('Failed to load events')
     } finally {
@@ -133,9 +144,19 @@ export default function AdminEventsPage() {
         setSuccess('✓ Event deleted successfully!')
         fetchEvents()
       } catch (err) {
-        setError('Failed to delete event')
+        setError(err.response?.data?.message || 'Failed to delete event')
       }
     }
+  }
+
+  // Resolve banner URL untuk preview (tambahkan BASE_URL jika path relatif)
+  const resolveBannerUrl = (banner) => {
+    if (!banner) return ''
+    if (typeof banner !== 'string') return ''
+    if (banner.startsWith('http')) return banner
+    if (banner.startsWith('blob:')) return banner
+    if (banner.startsWith('/uploads/')) return `${BASE_URL}${banner}`
+    return `${BASE_URL}/uploads/${banner}`
   }
 
   const startEdit = (event) => {
@@ -150,7 +171,7 @@ export default function AdminEventsPage() {
       category_id: event.category_id || '',
     })
     setBannerFile(null)
-    setBannerPreview(event.banner || '')
+    setBannerPreview(resolveBannerUrl(event.banner))
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }

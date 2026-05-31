@@ -18,8 +18,10 @@ export function AuthProvider({ children }) {
 
     return {
       ...user,
-      name: parsedProfile?.name || user.name || '',
-      email: parsedProfile?.email || user.email || '',
+      // Prioritaskan data terbaru dari server / hasil update.
+      // LocalStorage hanya fallback agar tidak menimpa nama baru dengan cache lama.
+      name: user.name || parsedProfile?.name || '',
+      email: user.email || parsedProfile?.email || '',
       photo: user.photo || parsedProfile?.photo || null
     }
   }
@@ -82,8 +84,10 @@ export function AuthProvider({ children }) {
       setUser(prev => ({
         ...prev,
         ...response.data.user,
-        name: prev?.name || response.data.user?.name || '',
-        email: prev?.email || response.data.user?.email || '',
+        // Saat refresh, pakai nama/email terbaru dari database,
+        // bukan nama lama dari state/localStorage.
+        name: response.data.user?.name || prev?.name || '',
+        email: response.data.user?.email || prev?.email || '',
         photo: response.data.user?.photo || prev?.photo || null
       }))
     } catch (error) {

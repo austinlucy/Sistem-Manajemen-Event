@@ -7,19 +7,7 @@ import useAlert from '../hooks/useAlert'
 import { VintageButton } from '../components/Vintage'
 import Logo from '../components/Logo'
 import HeroMinimalBackground from '../components/HeroMinimalBackground'
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.07, delayChildren: 0.2 }
-  }
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 80 } }
-}
+import AuthBrandPanel from '../components/AuthBrandPanel'
 
 export default function RegisterPage() {
   const [name, setName] = useState('')
@@ -70,232 +58,180 @@ export default function RegisterPage() {
   const passwordValid = password.length >= 6
 
   return (
-    <div className="min-h-screen flex overflow-hidden bg-black">
-      {/* LEFT PANEL - White with black text */}
-      <motion.div
-        initial={{ x: '-100%' }}
-        animate={{ x: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex lg:w-[45%] bg-white items-center justify-center relative overflow-hidden"
-      >
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-black/10 rounded-full"
-          />
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{ duration: 45, repeat: Infinity, ease: 'linear' }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] border border-black/5 rounded-full"
-          />
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }} />
-        </div>
+    <div className="min-h-screen overflow-hidden bg-black text-white relative">
+      <HeroMinimalBackground />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_22%,rgba(255,255,255,0.08),transparent_30%),radial-gradient(circle_at_82%_72%,rgba(255,255,255,0.045),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.035),transparent_32%,rgba(255,255,255,0.025))]" />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/10 via-black/35 to-black" />
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.7 }}
-          className="relative z-10 text-center px-12"
-        >
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.06fr_0.94fr]">
+        <AuthBrandPanel />
+
+        <section className="relative flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.7, type: 'spring', stiffness: 120 }}
-            className="mb-8 flex justify-center"
+            initial={{ opacity: 0, x: 56, filter: 'blur(12px)' }}
+            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.88, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+            className="w-full max-w-[460px]"
           >
-            <Logo size="xl" inverted />
-          </motion.div>
+            <div className="mb-7 flex justify-center lg:hidden">
+              <Logo size="lg" inverted={false} />
+            </div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            className="text-5xl md:text-6xl font-black text-black tracking-[-0.04em] uppercase leading-[0.85] mb-6"
-          >
-            JOIN
-            <br />
-            US
-          </motion.h1>
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative overflow-hidden border border-white/10 bg-black/55 p-5 shadow-[0_36px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-7 md:p-8"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+              <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-white/[0.055] blur-3xl" />
 
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ delay: 1.1, duration: 0.5 }}
-            className="w-16 h-0.5 bg-black mx-auto mb-6 origin-center"
-          />
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            className="text-sm text-[#555555] max-w-xs mx-auto leading-relaxed"
-          >
-            Daftar sekarang dan mulai eksplorasi event kampus terbaik
-          </motion.p>
-        </motion.div>
-      </motion.div>
-
-      {/* RIGHT PANEL - Black with white text */}
-      <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-        className="flex-1 flex items-center justify-center px-4 py-8 relative overflow-hidden"
-      >
-        <HeroMinimalBackground />
-
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="w-full max-w-md relative z-10"
-        >
-          {/* Header */}
-          <motion.div variants={itemVariants} className="mb-10">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#737373]">
-              Create Account
-            </span>
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mt-3 mb-2">
-              Buat Akun Baru
-            </h1>
-            <p className="text-sm text-[#737373]">
-              Isi data diri kamu untuk mulai menggunakan sistem
-            </p>
-          </motion.div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <motion.div variants={itemVariants} className="alert-error">
-                <p className="text-white text-sm">{error}</p>
-              </motion.div>
-            )}
-
-            <motion.div variants={itemVariants}>
-              <label className="block text-[10px] font-bold text-white mb-2 uppercase tracking-[0.15em]">
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="input-mono"
-              />
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <label className="block text-[10px] font-bold text-white mb-2 uppercase tracking-[0.15em]">
-                Email
-              </label>
-              <input
-                type="email"
-                placeholder="john@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="input-mono"
-              />
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <label className="block text-[10px] font-bold text-white mb-2 uppercase tracking-[0.15em]">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimal 6 karakter"
-                  required
-                  className="input-mono pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#525252] hover:text-white transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+              <div className="relative mb-8">
+                <span className="text-[10px] font-black uppercase tracking-[0.32em] text-white/45">
+                  Create Account
+                </span>
+                <h1 className="mt-3 text-4xl font-black leading-tight tracking-[-0.055em] text-white md:text-5xl">
+                  Buat Akun Baru
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-white/58">
+                  Isi data diri kamu untuk mulai menggunakan sistem Event Hub.
+                </p>
               </div>
-              {password && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  {passwordValid ? (
-                    <Check className="w-3.5 h-3.5 text-[#a3a3a3]" />
-                  ) : (
-                    <X className="w-3.5 h-3.5 text-[#525252]" />
-                  )}
-                  <span className={`text-[11px] ${passwordValid ? 'text-[#a3a3a3]' : 'text-[#525252]'}`}>
-                    Minimal 6 karakter
-                  </span>
-                </div>
-              )}
-            </motion.div>
 
-            <motion.div variants={itemVariants}>
-              <label className="block text-[10px] font-bold text-white mb-2 uppercase tracking-[0.15em]">
-                Konfirmasi Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Ulangi password"
-                  required
-                  className="input-mono pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#525252] hover:text-white transition-colors"
+              <form onSubmit={handleSubmit} className="relative space-y-5">
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="border border-white/15 bg-white/[0.045] p-4"
+                  >
+                    <p className="text-sm font-medium leading-5 text-white/85">{error}</p>
+                  </motion.div>
+                )}
+
+                <div>
+                  <label className="mb-2.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/78">
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="login-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/78">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="john@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="login-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/78">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Minimal 6 karakter"
+                      required
+                      className="login-input pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/38 transition-colors duration-300 hover:text-white"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {password && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {passwordValid ? (
+                        <Check className="h-3.5 w-3.5 text-white/70" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 text-white/35" />
+                      )}
+                      <span className={`text-[11px] ${passwordValid ? 'text-white/65' : 'text-white/35'}`}>
+                        Minimal 6 karakter
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2.5 block text-[10px] font-black uppercase tracking-[0.18em] text-white/78">
+                    Konfirmasi Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirm ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Ulangi password"
+                      required
+                      className="login-input pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/38 transition-colors duration-300 hover:text-white"
+                      aria-label={showConfirm ? 'Hide confirmation password' : 'Show confirmation password'}
+                    >
+                      {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {confirmPassword && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {passwordMatch ? (
+                        <Check className="h-3.5 w-3.5 text-white/70" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 text-white/35" />
+                      )}
+                      <span className={`text-[11px] ${passwordMatch ? 'text-white/65' : 'text-white/35'}`}>
+                        Password cocok
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <VintageButton
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  isLoading={loading}
+                  disabled={!passwordValid || !passwordMatch}
+                  className="login-submit !mt-7 w-full"
                 >
-                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  Daftar
+                </VintageButton>
+              </form>
+
+              <div className="mt-8 border-t border-white/10 pt-6">
+                <p className="text-center text-sm leading-6 text-white/52">
+                  Sudah punya akun?{' '}
+                  <Link to="/login" className="font-bold text-white underline-offset-4 transition-colors hover:text-white/75 hover:underline">
+                    Masuk sekarang
+                  </Link>
+                </p>
               </div>
-              {confirmPassword && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  {passwordMatch ? (
-                    <Check className="w-3.5 h-3.5 text-[#a3a3a3]" />
-                  ) : (
-                    <X className="w-3.5 h-3.5 text-[#525252]" />
-                  )}
-                  <span className={`text-[11px] ${passwordMatch ? 'text-[#a3a3a3]' : 'text-[#525252]'}`}>
-                    Password cocok
-                  </span>
-                </div>
-              )}
             </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <VintageButton
-                type="submit"
-                variant="primary"
-                size="md"
-                isLoading={loading}
-                disabled={!passwordValid || !passwordMatch}
-                className="w-full"
-              >
-                Daftar
-              </VintageButton>
-            </motion.div>
-          </form>
-
-          <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-[#1a1a1a]">
-            <p className="text-center text-sm text-[#737373]">
-              Sudah punya akun?{' '}
-              <Link to="/login" className="text-white hover:underline font-medium transition-colors">
-                Masuk sekarang
-              </Link>
-            </p>
           </motion.div>
-        </motion.div>
-      </motion.div>
+        </section>
+      </div>
     </div>
   )
 }

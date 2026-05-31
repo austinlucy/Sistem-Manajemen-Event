@@ -33,7 +33,10 @@ export default function HomePage() {
       setLoading(true)
       setError('')
 
-      const eventsResponse = await eventService.getAllEvents({ limit: 12 })
+      const [eventsResponse, statsResponse] = await Promise.all([
+        eventService.getAllEvents({ limit: 12, sort: 'date_asc' }),
+        eventService.getPublicStats()
+      ])
       const eventsData = eventsResponse.data?.data ?? eventsResponse.data
       const events = Array.isArray(eventsData) ? eventsData : []
 
@@ -43,19 +46,10 @@ export default function HomePage() {
 
       setLatestEvents(latest)
       setUpcomingEvents(upcoming.slice(0, 6))
-
-      const currentMonth = now.getMonth()
-      const currentYear = now.getFullYear()
-      const eventsThisMonth = events.filter(e => {
-        const d = new Date(e.event_date)
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-      }).length
-      const totalParticipants = events.reduce((sum, e) => sum + (e.registered_count || e.participant_count || 0), 0)
-
-      setStats({
-        activeEvents: events.length,
-        totalParticipants,
-        eventsThisMonth,
+      setStats(statsResponse.data || {
+        activeEvents: 0,
+        totalParticipants: 0,
+        eventsThisMonth: 0,
       })
     } catch (err) {
       console.error('Failed to fetch data:', err)

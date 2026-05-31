@@ -95,6 +95,20 @@ INSERT IGNORE INTO event_categories (category_name) VALUES
 ('Social'),
 ('Other');
 
+-- notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT,
+  admin_id INT,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(50) DEFAULT 'info',
+  is_read TINYINT(1) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_events_admin_id ON events(admin_id);
 CREATE INDEX idx_events_category_id ON events(category_id);
@@ -105,3 +119,5 @@ CREATE INDEX idx_registrations_event_id ON registrations(event_id);
 CREATE INDEX idx_registrations_status_id ON registrations(status_id);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_admins_email ON admins(email);
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_admin_id ON notifications(admin_id);
